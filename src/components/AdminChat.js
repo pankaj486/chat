@@ -115,8 +115,6 @@ const AdminChat = () => {
 
 export default AdminChat;
 
-// Styled-components for layout
-
 const AdminChatContainer = styled.div`
   display: flex;
   height: 100vh;

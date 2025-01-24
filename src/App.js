@@ -10,13 +10,12 @@ const App = () => {
   const [role, setRole] = useState(null);
 
   const handleLogin = (role, id) => {
-    // Static login: user1, user2 are regular users; admin is the admin
     if (role === 'user') {
       setRole('user');
-      setUserId(id); // Simulating user1 login
+      setUserId(id);
     } else if (role === 'admin') {
       setRole('admin');
-      setUserId('admin'); // Simulating admin login
+      setUserId('admin');
     }
   };
 

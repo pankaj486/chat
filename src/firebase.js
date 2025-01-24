@@ -22,14 +22,14 @@ const auth = getAuth(firebaseApp);
 
 // Sending a message
   export const sendMessage = (receiverId, message) => {
-    const messagesRef = ref(db, `messages/${receiverId}`); // Path to store messages for the specific receiver
-    const newMessageRef = push(messagesRef); // Create a unique key for the message
+    const messagesRef = ref(db, `messages/${receiverId}`);
+    const newMessageRef = push(messagesRef);
     set(newMessageRef, {
-      sender: message.sender,         // Sender ID
-      content: message.content,       // Message content
-      timestamp: message.timestamp,   // Timestamp of the message
-      isAdminReply: message.isAdminReply, // Boolean indicating if it's an admin reply
-      read: false,                    // Initially mark as unread
+      sender: message.sender,
+      content: message.content,
+      timestamp: message.timestamp,
+      isAdminReply: message.isAdminReply,
+      read: false,
     });
   };
 
@@ -37,7 +37,7 @@ const auth = getAuth(firebaseApp);
     const messagesRef = ref(db, `messages/${userId}`);
     onValue(messagesRef, (snapshot) => {
       const messages = snapshot.val();
-      callback(messages); // Return all messages for the specific user
+      callback(messages);
     });
   };
 
@@ -46,7 +46,7 @@ const auth = getAuth(firebaseApp);
     get(messagesRef).then((snapshot) => {
       if (snapshot.exists()) {
         snapshot.forEach((childSnapshot) => {
-          update(childSnapshot.ref, { read: true }); // Update `read` status for each message
+          update(childSnapshot.ref, { read: true });
         });
       }
     });
@@ -60,14 +60,12 @@ const auth = getAuth(firebaseApp);
   
       for (const userId in allChats) {
         const messages = Object.values(allChats[userId]);
-
-        // Count unread messages sent TO the user (not from admin)
         const unreadMessages = messages.filter(
           (msg) => !msg.read && !msg.isAdminReply
         );
-        unreadCounts[userId] = unreadMessages.length; // Count unread messages for each user
+        unreadCounts[userId] = unreadMessages.length;
       }
-      callback(unreadCounts); // Return an object with userId and their unread count
+      callback(unreadCounts);
     });
   };
 

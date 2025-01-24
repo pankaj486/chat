@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { sendMessage, readMessages } from '../firebase';  // Import the sendMessage function
-import styled from 'styled-components';  // For styling
+import { sendMessage, readMessages } from '../firebase';
+import styled from 'styled-components';
 
 const UserChat = ({userId}) => {
   const [message, setMessage] = useState('');
@@ -8,7 +8,6 @@ const UserChat = ({userId}) => {
   const [loadingChat, setLoadingChat] = useState(false);
 
   useEffect(() => {
-    // Fetch chat history for the user
     setLoadingChat(true);
     readMessages(userId, (messages) => {
       const chatHistory = Object.values(messages || {}).sort(
@@ -27,8 +26,8 @@ const UserChat = ({userId}) => {
         timestamp: new Date().toISOString(),
         isAdminReply: false,
       };
-      sendMessage(userId, newMessage); // Save message under the user's ID
-      setMessage(''); // Clear the input
+      sendMessage(userId, newMessage);
+      setMessage('');
     }
   };
 
@@ -72,8 +71,6 @@ const UserChat = ({userId}) => {
 };
 
 export default UserChat;
-
-// Styled components for layout and design (mimicking WhatsApp web style)
 
 const ChatContainer = styled.div`
   display: flex;
