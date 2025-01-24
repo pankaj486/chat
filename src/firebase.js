@@ -60,10 +60,13 @@ const auth = getAuth(firebaseApp);
   
       for (const userId in allChats) {
         const messages = Object.values(allChats[userId]);
-        const unreadMessages = messages.filter(msg => !msg.read);
+
+        // Count unread messages sent TO the user (not from admin)
+        const unreadMessages = messages.filter(
+          (msg) => !msg.read && !msg.isAdminReply
+        );
         unreadCounts[userId] = unreadMessages.length; // Count unread messages for each user
       }
-  
       callback(unreadCounts); // Return an object with userId and their unread count
     });
   };

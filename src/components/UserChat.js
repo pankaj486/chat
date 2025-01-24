@@ -5,14 +5,17 @@ import styled from 'styled-components';  // For styling
 const UserChat = ({userId}) => {
   const [message, setMessage] = useState('');
   const [chat, setChat] = useState([]);
+  const [loadingChat, setLoadingChat] = useState(false);
 
   useEffect(() => {
     // Fetch chat history for the user
+    setLoadingChat(true);
     readMessages(userId, (messages) => {
       const chatHistory = Object.values(messages || {}).sort(
         (a, b) => new Date(a.timestamp) - new Date(b.timestamp)
       );
       setChat(chatHistory);
+      setLoadingChat(false);
     });
   }, [userId]);
 
@@ -42,13 +45,17 @@ const UserChat = ({userId}) => {
         <ChatHeader>
           <h3>Chat with Admin</h3>
         </ChatHeader>
-        <Messages>
-          {chat.map((msg, idx) => (
-            <Message key={idx} className={msg.isAdminReply ? 'admin' : 'user'}>
-              <strong>{msg.sender}:</strong> {msg.content}
-            </Message>
-          ))}
-        </Messages>
+        {
+          loadingChat ?
+          <Loader>Loading chat history...</Loader> :
+          <Messages>
+            {chat.map((msg, idx) => (
+              <Message key={idx} className={msg.isAdminReply ? 'admin' : 'user'}>
+                <strong>{msg.sender}:</strong> {msg.content}
+              </Message>
+            ))}
+          </Messages>
+        }
         <MessageInput>
           <Input
             type="text"
@@ -141,4 +148,11 @@ const SendButton = styled.button`
   &:hover {
     background-color: #075e54;
   }
+`;
+
+const Loader = styled.div`
+  text-align: center;
+  margin-top: 20px;
+  font-size: 16px;
+  color: #555;
 `;
