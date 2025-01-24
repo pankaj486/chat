@@ -2,30 +2,30 @@ import React, { useState, useEffect } from 'react';
 import { sendMessage, readMessages } from '../firebase';  // Import the sendMessage function
 import styled from 'styled-components';  // For styling
 
-const UserChat = () => {
+const UserChat = ({userId}) => {
   const [message, setMessage] = useState('');
   const [chat, setChat] = useState([]);
 
   useEffect(() => {
-    // Read messages history from Firebase when the component mounts
-    readMessages('admin', (messages) => {
-      const chatHistory = Object.values(messages || {});
+    // Fetch chat history for the user
+    readMessages(userId, (messages) => {
+      const chatHistory = Object.values(messages || {}).sort(
+        (a, b) => new Date(a.timestamp) - new Date(b.timestamp)
+      );
       setChat(chatHistory);
     });
-  }, []);
+  }, [userId]);
 
   const sendMessageHandler = () => {
     if (message.trim()) {
       const newMessage = {
-        sender: 'User',
+        sender: userId,
         content: message,
         timestamp: new Date().toISOString(),
-        isAdminReply: false
+        isAdminReply: false,
       };
-
-      // Send the message to the admin (default userId is 'admin')
-      sendMessage('admin', newMessage);
-      setMessage('');  // Clear the input after sending
+      sendMessage(userId, newMessage); // Save message under the user's ID
+      setMessage(''); // Clear the input
     }
   };
 

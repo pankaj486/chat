@@ -21,44 +21,50 @@ const db = getDatabase(firebaseApp);
 const auth = getAuth(firebaseApp);
 
 // Sending a message
-export const sendMessage = (userId, message) => {
-    const messagesRef = ref(db, 'messages/' + userId);  // Path to store messages for the specific user
-    const newMessageRef = push(messagesRef);  // Create a unique key
+  export const sendMessage = (receiverId, message) => {
+    const messagesRef = ref(db, `messages/${receiverId}`); // Path to store messages for the specific receiver
+    const newMessageRef = push(messagesRef); // Create a unique key for the message
     set(newMessageRef, {
-      sender: message.sender,
-      content: message.content,
-      timestamp: message.timestamp,
-      isAdminReply: message.isAdminReply,
-      read: false,  // Initially mark as unread
-    });
-  };
-  
-  // Reading messages
-  export const readMessages = (userId, callback) => {
-    const messagesRef = ref(db, 'messages/' + userId);
-    onValue(messagesRef, (snapshot) => {
-      callback(snapshot.val());  // Get all messages for the user
-    });
-  };
-  
-  // Mark all messages as read
-  export const markMessagesAsRead = (userId) => {
-    const messagesRef = ref(db, 'messages/' + userId);
-    get(messagesRef).then((snapshot) => {
-      snapshot.forEach((childSnapshot) => {
-        update(childSnapshot.ref, { read: true }); // Mark as read
-      });
+      sender: message.sender,         // Sender ID
+      content: message.content,       // Message content
+      timestamp: message.timestamp,   // Timestamp of the message
+      isAdminReply: message.isAdminReply, // Boolean indicating if it's an admin reply
+      read: false,                    // Initially mark as unread
     });
   };
 
-  
-  
-  // Get unread messages count
-  export const getUnreadCount = (userId, callback) => {
-    const messagesRef = ref(db, 'messages/' + userId);
+  export const readMessages = (userId, callback) => {
+    const messagesRef = ref(db, `messages/${userId}`);
     onValue(messagesRef, (snapshot) => {
-      const unreadMessages = snapshot.val() ? Object.values(snapshot.val()).filter(msg => msg.read === false) : [];
-      callback(unreadMessages.length);  // Get the number of unread messages
+      const messages = snapshot.val();
+      callback(messages); // Return all messages for the specific user
+    });
+  };
+
+  export const markMessagesAsRead = (userId) => {
+    const messagesRef = ref(db, `messages/${userId}`);
+    get(messagesRef).then((snapshot) => {
+      if (snapshot.exists()) {
+        snapshot.forEach((childSnapshot) => {
+          update(childSnapshot.ref, { read: true }); // Update `read` status for each message
+        });
+      }
+    });
+  };
+
+  export const getUnreadCountsForAllUsers = (callback) => {
+    const messagesRef = ref(db, 'messages/');
+    onValue(messagesRef, (snapshot) => {
+      const allChats = snapshot.val();
+      const unreadCounts = {};
+  
+      for (const userId in allChats) {
+        const messages = Object.values(allChats[userId]);
+        const unreadMessages = messages.filter(msg => !msg.read);
+        unreadCounts[userId] = unreadMessages.length; // Count unread messages for each user
+      }
+  
+      callback(unreadCounts); // Return an object with userId and their unread count
     });
   };
 

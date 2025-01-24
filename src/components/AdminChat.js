@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { db, sendMessage, readMessages, markMessagesAsRead, getUnreadCount } from '../firebase.js';  // Import functions
-import { onValue, ref } from 'firebase/database';
+import { sendMessage, readMessages, markMessagesAsRead, getUnreadCountsForAllUsers } from '../firebase.js';
 import styled from 'styled-components';
 
 const AdminChat = () => {
@@ -9,45 +8,29 @@ const AdminChat = () => {
   const [message, setMessage] = useState('');
   const [chat, setChat] = useState([]);
   const [unreadCounts, setUnreadCounts] = useState({});
+  const [loadingUsers, setLoadingUsers] = useState(true);
+  const [loadingChat, setLoadingChat] = useState(false);
 
   useEffect(() => {
-    // Fetch all users' messages
-    const usersRef = ref(db, 'messages');
-    onValue(usersRef, (snapshot) => {
-      const data = snapshot.val();
-      if (data) {
-        const usersArray = Object.keys(data).map((key) => ({
-          userId: key,
-          ...data[key],
-        }));
-        setUsers(usersArray);
-      }
+    setLoadingUsers(true);
+    getUnreadCountsForAllUsers((counts) => {
+      setUnreadCounts(counts);
+      setUsers(Object.keys(counts));
+      setLoadingUsers(false);
     });
   }, []);
-
-  // Get unread message count for each user
-  useEffect(() => {
-    users.forEach((user) => {
-      getUnreadCount(user.userId, (count) => {
-        setUnreadCounts((prevCounts) => ({
-          ...prevCounts,
-          [user.userId]: count,
-        }));
-      });
-    });
-  }, [users]);
 
   const handleUserClick = (userId) => {
     setSelectedUser(userId);
     setChat([]);
-    
-    // Mark messages as read for the selected user
+    setLoadingChat(true);
     markMessagesAsRead(userId);
-
-    // Fetch messages for the selected user
     readMessages(userId, (messages) => {
-      const chatArray = Object.values(messages || {});
-      setChat(chatArray);
+      const chatHistory = Object.values(messages || {}).sort(
+        (a, b) => new Date(a.timestamp) - new Date(b.timestamp)
+      );
+      setChat(chatHistory);
+      setLoadingChat(false);
     });
   };
 
@@ -58,7 +41,6 @@ const AdminChat = () => {
         content: message,
         timestamp: new Date().toISOString(),
         isAdminReply: true,
-        read: false,  // Sent messages are unread initially
       };
       sendMessage(selectedUser, newMessage);
       setMessage('');
@@ -69,18 +51,22 @@ const AdminChat = () => {
     <AdminChatContainer>
       <Sidebar>
         <h3>Users</h3>
-        <UserList>
-          {users.map((user) => (
-            <UserItem key={user.userId}>
-              <UserButton onClick={() => handleUserClick(user.userId)}>
-                {user.userId} 
-                {unreadCounts[user.userId] > 0 && (
-                  <UnreadCount>{unreadCounts[user.userId]}</UnreadCount>
-                )}
-              </UserButton>
-            </UserItem>
-          ))}
-        </UserList>
+        {
+          loadingUsers ? 
+          <Loader>Loading users...</Loader>:
+          <UserList>
+            {users.map((userId) => (
+              <UserItem key={userId}>
+                <UserButton onClick={() => handleUserClick(userId)}>
+                  {userId} 
+                  {unreadCounts[userId] > 0 && (
+                    <UnreadCount>{unreadCounts[userId]}</UnreadCount>
+                  )}
+                </UserButton>
+              </UserItem>
+            ))}
+          </UserList>
+        }
       </Sidebar>
       <ChatArea>
         {selectedUser ? (
@@ -88,13 +74,17 @@ const AdminChat = () => {
             <ChatHeader>
               <h2>Chat with {selectedUser}</h2>
             </ChatHeader>
-            <ChatMessages>
-              {chat.map((msg, idx) => (
-                <Message key={idx} className={msg.isAdminReply ? 'admin' : 'user'}>
-                  <strong>{msg.sender}:</strong> {msg.content}
-                </Message>
-              ))}
-            </ChatMessages>
+            {
+              loadingChat ? 
+              <Loader>Loading chat history...</Loader>:
+              <ChatMessages>
+                {chat.map((msg, idx) => (
+                  <Message key={idx} className={msg.isAdminReply ? 'admin' : 'user'}>
+                    <strong>{msg.sender}:</strong> {msg.content}
+                  </Message>
+                ))}
+              </ChatMessages>
+            }
             <MessageInput>
               <Input
                 type="text"
@@ -245,5 +235,12 @@ const NoChatSelected = styled.div`
   height: 100%;
   text-align: center;
   font-size: 18px;
+  color: #555;
+`;
+
+const Loader = styled.div`
+  text-align: center;
+  margin-top: 20px;
+  font-size: 16px;
   color: #555;
 `;
