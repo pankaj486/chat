@@ -1,0 +1,249 @@
+import React, { useState, useEffect } from 'react';
+import { db, sendMessage, readMessages, markMessagesAsRead, getUnreadCount } from '../firebase.js';  // Import functions
+import { onValue, ref } from 'firebase/database';
+import styled from 'styled-components';
+
+const AdminChat = () => {
+  const [users, setUsers] = useState([]);
+  const [selectedUser, setSelectedUser] = useState(null);
+  const [message, setMessage] = useState('');
+  const [chat, setChat] = useState([]);
+  const [unreadCounts, setUnreadCounts] = useState({});
+
+  useEffect(() => {
+    // Fetch all users' messages
+    const usersRef = ref(db, 'messages');
+    onValue(usersRef, (snapshot) => {
+      const data = snapshot.val();
+      if (data) {
+        const usersArray = Object.keys(data).map((key) => ({
+          userId: key,
+          ...data[key],
+        }));
+        setUsers(usersArray);
+      }
+    });
+  }, []);
+
+  // Get unread message count for each user
+  useEffect(() => {
+    users.forEach((user) => {
+      getUnreadCount(user.userId, (count) => {
+        setUnreadCounts((prevCounts) => ({
+          ...prevCounts,
+          [user.userId]: count,
+        }));
+      });
+    });
+  }, [users]);
+
+  const handleUserClick = (userId) => {
+    setSelectedUser(userId);
+    setChat([]);
+    
+    // Mark messages as read for the selected user
+    markMessagesAsRead(userId);
+
+    // Fetch messages for the selected user
+    readMessages(userId, (messages) => {
+      const chatArray = Object.values(messages || {});
+      setChat(chatArray);
+    });
+  };
+
+  const sendMessageHandler = () => {
+    if (message.trim() && selectedUser) {
+      const newMessage = {
+        sender: 'Admin',
+        content: message,
+        timestamp: new Date().toISOString(),
+        isAdminReply: true,
+        read: false,  // Sent messages are unread initially
+      };
+      sendMessage(selectedUser, newMessage);
+      setMessage('');
+    }
+  };
+
+  return (
+    <AdminChatContainer>
+      <Sidebar>
+        <h3>Users</h3>
+        <UserList>
+          {users.map((user) => (
+            <UserItem key={user.userId}>
+              <UserButton onClick={() => handleUserClick(user.userId)}>
+                {user.userId} 
+                {unreadCounts[user.userId] > 0 && (
+                  <UnreadCount>{unreadCounts[user.userId]}</UnreadCount>
+                )}
+              </UserButton>
+            </UserItem>
+          ))}
+        </UserList>
+      </Sidebar>
+      <ChatArea>
+        {selectedUser ? (
+          <ChatWindow>
+            <ChatHeader>
+              <h2>Chat with {selectedUser}</h2>
+            </ChatHeader>
+            <ChatMessages>
+              {chat.map((msg, idx) => (
+                <Message key={idx} className={msg.isAdminReply ? 'admin' : 'user'}>
+                  <strong>{msg.sender}:</strong> {msg.content}
+                </Message>
+              ))}
+            </ChatMessages>
+            <MessageInput>
+              <Input
+                type="text"
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+                placeholder="Type a message"
+              />
+              <SendButton onClick={sendMessageHandler}>Send</SendButton>
+            </MessageInput>
+          </ChatWindow>
+        ) : (
+          <NoChatSelected>
+            <h3>Select a user to start a chat</h3>
+          </NoChatSelected>
+        )}
+      </ChatArea>
+    </AdminChatContainer>
+  );
+};
+
+export default AdminChat;
+
+// Styled-components for layout
+
+const AdminChatContainer = styled.div`
+  display: flex;
+  height: 100vh;
+  background-color: #f0f0f0;
+`;
+
+const Sidebar = styled.div`
+  width: 300px;
+  background-color: #ffffff;
+  border-right: 1px solid #ddd;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+`;
+
+const UserList = styled.ul`
+  list-style-type: none;
+  padding: 0;
+`;
+
+const UserItem = styled.li`
+  margin: 10px 0;
+`;
+
+const UserButton = styled.button`
+  background-color: #ffffff;
+  border: none;
+  padding: 10px;
+  width: 100%;
+  text-align: left;
+  font-size: 16px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+  position: relative;
+  
+  &:hover {
+    background-color: #f0f0f0;
+  }
+`;
+
+const UnreadCount = styled.span`
+  background-color: #ff3b30;
+  color: white;
+  border-radius: 50%;
+  padding: 3px 10px;
+  font-size: 14px;
+  position: absolute;
+  top: 50%;
+  right: 10px;
+  transform: translateY(-50%);
+`;
+
+const ChatArea = styled.div`
+  flex: 1;
+  background-color: #ffffff;
+  display: flex;
+  flex-direction: column;
+`;
+
+const ChatWindow = styled.div`
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+`;
+
+const ChatHeader = styled.div`
+  background-color: #f5f5f5;
+  padding: 15px;
+  border-bottom: 1px solid #ddd;
+`;
+
+const ChatMessages = styled.div`
+  flex: 1;
+  padding: 10px;
+  overflow-y: auto;
+  background-color: #f9f9f9;
+`;
+
+const Message = styled.div`
+  margin-bottom: 10px;
+  padding: 10px;
+  border-radius: 5px;
+  max-width: 80%;
+  background-color: ${props => props.className === 'admin' ? '#d1ffd6' : '#e0e0e0'};
+  align-self: ${props => props.className === 'admin' ? 'flex-start' : 'flex-end'};
+
+  strong {
+    margin-right: 5px;
+  }
+`;
+
+const MessageInput = styled.div`
+  display: flex;
+  padding: 15px;
+  border-top: 1px solid #ddd;
+`;
+
+const Input = styled.input`
+  flex: 1;
+  padding: 10px;
+  border: none;
+  border-radius: 5px;
+  margin-right: 10px;
+  font-size: 16px;
+`;
+
+const SendButton = styled.button`
+  background-color: #007bff;
+  color: white;
+  border: none;
+  padding: 10px;
+  border-radius: 5px;
+  cursor: pointer;
+  
+  &:hover {
+    background-color: #0056b3;
+  }
+`;
+
+const NoChatSelected = styled.div`
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+  text-align: center;
+  font-size: 18px;
+  color: #555;
+`;
