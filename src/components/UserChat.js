@@ -29,6 +29,13 @@ const UserChat = ({userId}) => {
     }
   };
 
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      sendMessageHandler();
+    }
+  };
+
   return (
     <ChatContainer>
       <ChatWindow>
@@ -48,6 +55,7 @@ const UserChat = ({userId}) => {
             value={message}
             onChange={(e) => setMessage(e.target.value)}
             placeholder="Type a message"
+            onKeyDown={handleKeyDown}
           />
           <SendButton onClick={sendMessageHandler}>Send</SendButton>
         </MessageInput>

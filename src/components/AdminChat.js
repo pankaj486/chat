@@ -47,6 +47,13 @@ const AdminChat = () => {
     }
   };
 
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      sendMessageHandler();
+    }
+  };
+
   return (
     <AdminChatContainer>
       <Sidebar>
@@ -56,7 +63,7 @@ const AdminChat = () => {
           <Loader>Loading users...</Loader>:
           <UserList>
             {users.map((userId) => (
-              <UserItem key={userId}>
+              <UserItem key={userId} isActive={userId === selectedUser}>
                 <UserButton onClick={() => handleUserClick(userId)}>
                   {userId} 
                   {unreadCounts[userId] > 0 && (
@@ -91,6 +98,7 @@ const AdminChat = () => {
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
                 placeholder="Type a message"
+                onKeyDown={handleKeyDown}
               />
               <SendButton onClick={sendMessageHandler}>Send</SendButton>
             </MessageInput>
@@ -130,23 +138,28 @@ const UserList = styled.ul`
 `;
 
 const UserItem = styled.li`
-  margin: 10px 0;
+  background-color: ${(props) => (props.isActive ? "#d1e7dd" : "#f8f9fa")};
+  padding: 10px;
+  margin: 5px 0;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  transition: background-color 0.3s ease;
+
+  &:hover {
+    background-color: ${(props) => (props.isActive ? "#c9dfd4" : "#c9dfd4")};
+  }
 `;
 
 const UserButton = styled.button`
-  background-color: #ffffff;
+  background-color: transparent;
   border: none;
-  padding: 10px;
+  // padding: 10px;
   width: 100%;
   text-align: left;
   font-size: 16px;
   cursor: pointer;
   transition: background-color 0.3s;
   position: relative;
-  
-  &:hover {
-    background-color: #f0f0f0;
-  }
 `;
 
 const UnreadCount = styled.span`
